@@ -1,0 +1,16 @@
+{
+  "name": "youtube-backend",
+  "version": "1.0.0",
+  "description": "It is a project of youtube backend from hitesh sir!!",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "javascript",
+    "backend",
+    "express"
+  ],
+  "author": "Sukanta Behera",
+  "license": "ISC"
+}
