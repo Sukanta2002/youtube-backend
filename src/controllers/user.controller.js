@@ -21,7 +21,7 @@ const registerUser = asyncHandler(async (req, res) => {
     // check for images, check for avatar
     const avatarLocalPath = req.files?.avatar[0]?.path;
     // const coverImageLocalPath = req.files?.coverImage[0]?.path;
-    let coverImageLocalPath = ""
+    let coverImageLocalPath 
     if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length >0) {
         coverImageLocalPath = req.files.coverImage[0].path;
     }
@@ -56,4 +56,27 @@ const registerUser = asyncHandler(async (req, res) => {
     )
 })
 
-export default registerUser;
+const loginUser = asyncHandler(async (req, res) => {
+    // Get the userId, email and password from the user via req.body
+    const {email,username,password} = req.body
+
+    // Check if the email or username is exist
+    if (!email || !username) {
+        throw new ApiError(400,"Username or Email is required!!!");
+    }
+    // find the user from the database
+    const user = await User.findOne({
+        $or:[{email},{username}]
+    }) // used to find both from email or username
+
+    if (!user) {
+        throw new ApiError(400,"User does not exist!!")
+    }
+    // verify  password from database 
+    // generate a refresh token and send to the user
+})
+
+export {
+    registerUser,
+    loginUser
+} 
