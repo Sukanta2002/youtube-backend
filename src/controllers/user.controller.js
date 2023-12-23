@@ -3,6 +3,7 @@ import { ApiError } from "../utils/apiError.js";
 import { ApiResponce } from "../utils/apiResponce.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import jwt from "jsonwebtoken";
 
 
 // To generate the access token and refresh token
@@ -159,9 +160,65 @@ const logoutUser = asyncHandler(async (req, res) => {
 
 })
 
+// Refresh the access token
+const refreshAcessToken = asyncHandler(async (req, res) => {
+    // Get the refreshToken from cookie or body
+    const incommingRefreshToken = req.cookie.refreshToken || req.body.refreshToken
+
+    //check if incomming refreshToken is not empty
+    if (!incommingRefreshToken) {
+        throw new ApiError(401, "Unauthorized request")
+    }
+
+    // decord the refresh token using the jwt
+    const decodedRefreshToken = jwt.verify(
+        incommingRefreshToken,
+        process.env.REFRESH_TOKEN_SECRET
+    );
+
+    // get the user from the database 
+    const user = await User.findById(decodedRefreshToken._id);
+
+    // Check if the the user is present or not
+    if (!user) {
+        throw new ApiError(401, "Invalid Refresh token")
+    }
+
+    // check if the incomming refresh token and the refresh token saved in the db is same or not
+    if (incommingRefreshToken !== user?.refreshToken) {
+        throw new ApiError(401, "Refresh token is expired")
+    }
+
+    // generate a new refresh and access token
+    const { accessToken, refreshToken } = await generateAccessTokenAndRefreshToken(user?._id)
+
+    // make the options for the cookies 
+    const options = {
+        httpOnly: true,
+        secure: true
+    }
+
+    return res
+        .status(200)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options)
+        .json(
+            new ApiResponce(
+                200,
+                {
+                    accessToken,
+                    refreshToken
+                },
+                "Access Token refreshed Succesfully!!!"
+            )
+        )
+
+})
+
 
 export {
     registerUser,
     loginUser,
-    logoutUser
+    logoutUser,
+    refreshAcessToken
 } 
