@@ -80,6 +80,7 @@ const registerUser = asyncHandler(async (req, res) => {
         new ApiResponce(200, createdUser, "User Registered Sucessfully")
     )
 })
+
 // For Login the user
 const loginUser = asyncHandler(async (req, res) => {
     // Get the userId, email and password from the user via req.body
@@ -127,7 +128,6 @@ const loginUser = asyncHandler(async (req, res) => {
         )
 
 })
-
 
 // For logout the user
 const logoutUser = asyncHandler(async (req, res) => {
@@ -215,10 +215,204 @@ const refreshAcessToken = asyncHandler(async (req, res) => {
 
 })
 
+// For changing the password of the user
+const updateCurrentPassword = asyncHandler(async (req, res) => {
+    // Get the old password and the new password from the req.body
+    const { oldPassword, newPassword } = req.body
+
+    // check if the fields are not empty
+    if (!oldPassword || !newPassword) {
+        throw new ApiError(400, "Password is required")
+    }
+
+
+    // get the use from the db
+    const user = await User.findById(req.user._id)
+    // Check if the new password is same with the password in the db
+    // For checking we use User model 
+    // In the User model their is a methord called isPassswordCorrect
+    const isPassswordCorrect = await user.isPasswordCorrect(oldPassword);
+
+    // Check if the password is not correct then send a error
+    if (!isPassswordCorrect) {
+        throw new ApiError(400, "Password is incorrect!!!")
+    }
+
+    // Update the password in the db
+    user.password = newPassword
+    // When we save the user after updating thepassword the pre methord in the user model is called
+    // In the pre methord if the password is changed then the password is encrypted by the bcrypt 
+    await user.save({
+        validateBeforeSave: false // use of this line is to save as it is in the db and not to verify ererything in the db
+    })
+
+    // send the responce 
+    return res
+        .status(200)
+        .json(
+            new ApiResponce(200,
+                {},
+                "Password change Sucessfully!!")
+        )
+})
+
+// For updating the fullname and the email
+const updateAccountDetails = asyncHandler(async (req, res) => {
+    // Get the new fullName and the email from the user by the body of req
+    const { fullName, email } = req.body
+
+    // Check the fullname and the email is exist
+    if (!fullName || !email) {
+        throw new ApiError(400, "Both field is required!!!")
+    }
+
+    // get the user id from the req because the verifyJWT middelware will inject the user to the req
+    const user = await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $set: {
+                email,
+                fullName
+            }
+        },
+        {
+            new: true
+        }
+    ).select("-password")
+
+    // check if the user is exist or not
+    if (!user) {
+        throw new ApiError(401, "Error updating in the db!!!")
+    }
+
+    // return the responce 
+    return res
+        .status(200)
+        .json(
+            new ApiResponce(
+                200, user, "Email and Name updated Sucessfully!!!"
+            )
+        )
+
+})
+
+// For getting the user and Sending it back
+const getCurrentUser = asyncHandler(async (req, res) => {
+    return res
+        .status(200)
+        .json(
+            new ApiResponce(
+                200,
+                req.user,
+                "Current user fetched sucessfully!!!"
+            )
+        )
+})
+
+// updating the avatar image
+const updateUserAvatar = asyncHandler(async (req, res) => {
+    // get the local path of the avatar 
+    const avatarLocalPath = req.file?.avatar
+
+    // check if we get the path
+    if (!avatarLocalPath) {
+        throw new ApiError(400, "Avatar file is missing!!!")
+    }
+
+    // upload to the cloudynary
+    const avatarUrl = await uploadOnCloudinary(avatarLocalPath)
+
+    // Check if the url exist
+    if (!avatarUrl) {
+        throw new ApiError(400, "Error when uploading file to the cloudynary!!!")
+    }
+
+    // Update the db with new avatar url
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: {
+                avatar: avatarUrl
+            }
+        },
+        {
+            new: true
+        }
+    ).select("-password")
+
+    // Check if the user exist
+    if (!user) {
+        throw new ApiError(401, "Error when updating the avatar url in the db!!!")
+    }
+
+    // return the responce 
+    return res
+        .status(200)
+        .json(
+            new ApiResponce(
+                200,
+                user,
+                "Avatar updated Sucessfully!!!"
+            )
+        )
+})
+
+// Updating the cover image
+const updateCoverImage = asyncHandler(async (req, res) => {
+    // get the cover image local path from the req
+    const coverImageLocalPath = req.file?.coverImage
+
+    // Check if the path exist 
+    if (!coverImageLocalPath) {
+        throw new ApiError(400, "Cover Image is missing!!!")
+    }
+
+    // upload it on the cloudnary
+    const coverImageUrl = await uploadOnCloudinary(coverImageLocalPath)
+
+    // Check if url is not empty
+    if (!coverImageUrl) {
+        throw new ApiError(400, "Error when uploding file on cloudynary!!!")
+    }
+
+    // update the url in the db
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: {
+                coverImage: coverImageUrl
+            }
+        },
+        {
+            new: true
+        }
+    ).select("-password")
+
+    // Check if the user is exist
+    if (!user) {
+        throw new ApiError(200, "Error when updating the cover Image url in db!!!")
+    }
+
+    // return the responce
+    return res
+        .status(200)
+        .json(
+            new ApiResponce(
+                200,
+                user,
+                "Cover image updated successfully!!!"
+            )
+        )
+})
 
 export {
     registerUser,
     loginUser,
     logoutUser,
-    refreshAcessToken
+    refreshAcessToken,
+    updateCurrentPassword,
+    updateAccountDetails,
+    getCurrentUser,
+    updateCoverImage,
+    updateUserAvatar
 } 
