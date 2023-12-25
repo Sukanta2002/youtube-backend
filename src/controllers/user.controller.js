@@ -2,7 +2,7 @@ import { User } from "../models/user.model.js";
 import { ApiError } from "../utils/apiError.js";
 import { ApiResponce } from "../utils/apiResponce.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { uploadOnCloudinary, deleteOnCloudinary } from "../utils/cloudinary.js";
 import jwt from "jsonwebtoken";
 
 
@@ -313,6 +313,8 @@ const getCurrentUser = asyncHandler(async (req, res) => {
 const updateUserAvatar = asyncHandler(async (req, res) => {
     // get the local path of the avatar 
     const avatarLocalPath = req.file?.avatar
+    // get the old avatar url
+    const oldAvatarUrl = req.user?.avatar
 
     // check if we get the path
     if (!avatarLocalPath) {
@@ -345,6 +347,9 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
         throw new ApiError(401, "Error when updating the avatar url in the db!!!")
     }
 
+    // delete the image from the cloudinary
+    await deleteOnCloudinary(oldAvatarUrl)
+
     // return the responce 
     return res
         .status(200)
@@ -361,6 +366,8 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
 const updateCoverImage = asyncHandler(async (req, res) => {
     // get the cover image local path from the req
     const coverImageLocalPath = req.file?.coverImage
+    // get the old Cover image url
+    const oldCoverImageUrl = req.user?.avatar
 
     // Check if the path exist 
     if (!coverImageLocalPath) {
@@ -392,6 +399,9 @@ const updateCoverImage = asyncHandler(async (req, res) => {
     if (!user) {
         throw new ApiError(200, "Error when updating the cover Image url in db!!!")
     }
+
+    // delete the cover image 
+    await deleteOnCloudinary(oldCoverImageUrl)
 
     // return the responce
     return res
