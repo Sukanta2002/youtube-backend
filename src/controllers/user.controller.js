@@ -415,6 +415,114 @@ const updateCoverImage = asyncHandler(async (req, res) => {
         )
 })
 
+// geting the user profile
+const getUserChannelProfile = asyncHandler(async (req, res) => {
+    // recive the username as the parameter in the link
+    const userName = req.params
+
+    // check if the user name is exist or not 
+    if (!userName) {
+        throw new ApiError(400, "User name is missing!!")
+    }
+
+    // now write the aggrigation pipeline to get the subscriber count and how many channel it follow and is subscribed present
+    const channel = await User.aggregate([
+        // stage 1 --> find out the user with the recived user name
+        {
+            // using match 
+            $match: {
+                username: userName,
+            }
+        },
+        // stage 2 --> joining the user with the subscription model and finding out the no of subscribeer present of the user
+        {
+            // we use loockup to find the subscriber
+            $lookup: {
+                // from field takes the model to join
+                from: "subscriptions",
+                // it is the field in the user(local) which is used to join with the field of other model
+                localField: "_id",
+                // it the field in subscription(foreign) which is used to match
+                foreignField: "channel",
+                // "as" is the name save it
+                as: "subscriber"
+            }
+        },
+        // stage 3 --> joining the user with the subscription model and finding out the no of subscribed to channel present of the user
+        {
+            // we use loockup to find the subscribed to
+            $lookup: {
+                // from field takes the model to join
+                from: "subscribtions",
+                // it is the field in the user(local) which is used to join with the field of other model
+                localField: "_id",
+                // it the field in subscription(foreign) which is used to match
+                foreignField: "subscriber",
+                // "as" is the name save it
+                as: "subscribedToChannel"
+            }
+        },
+        // stage 4 --> add the required fields to the user model to give back return the proper responce
+        {
+            // user addfield to add the fields
+            $addFields: {
+                // add a field for no of subscriber
+                subscribersCount: {
+                    // $size is used to find out the count of the field
+                    $size: "$subscriber"
+                },
+                // add a field for no of channel subscribed
+                subscribedToChannelCount: {
+                    $size: "$subscribedToChannel"
+                },
+                // add a field to see if the user is subscribed to the channel
+                isSubscribed: {
+                    // $cond is used to write a condition in mongodb
+                    $cond: {
+                        // in the if --> if in the subscriber field the user id of the requested user is present the return the true value
+                        if: { "$subscriber": { $in: [req.user?._id] } },
+                        then: true,
+                        else: false,
+                    }
+                }
+            }
+        },
+        // stage 5 --> project means that to return the required fiels from the db
+        {
+            $project: {
+                // set the value 1 to which want to return from the db
+                username: 1,
+                fullName: 1,
+                subscribersCount: 1,
+                subscribedToChannelCount: 1,
+                isSubscribed: 1,
+                email: 1,
+                avatar: 1,
+                coverImage: 1
+            }
+        }
+    ])
+
+    // check if the chanel exits or not
+    // the aggregate function return a array of the objects
+    // for that we write the channel.lengths
+    if (!channel?.length) {
+        throw new ApiError(404, "Channel does not exist!!!")
+    }
+
+    // return the responce
+    return res
+        .status(200)
+        .json(
+            new ApiResponce(
+                200,
+                channel,
+                "Channel fetched sucessfully!!!"
+            )
+        )
+
+})
+
 export {
     registerUser,
     loginUser,
@@ -424,5 +532,6 @@ export {
     updateAccountDetails,
     getCurrentUser,
     updateCoverImage,
-    updateUserAvatar
+    updateUserAvatar,
+    getUserChannelProfile
 } 
