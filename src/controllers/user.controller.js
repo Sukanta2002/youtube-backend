@@ -528,7 +528,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
 // gwttring watch history
 const getWatchHistory = asyncHandler(async (req, res) => {
     // get the current user in whisch the watch history is their
-    const user = User.aggregate([
+    const user = await User.aggregate([
         // stag 1 --> to get the current user
         {
             // first match the id of the current user to the user document
