@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { User } from "../models/user.model.js";
 import { ApiError } from "../utils/apiError.js";
 import { ApiResponce } from "../utils/apiResponce.js";
@@ -516,13 +517,78 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         .json(
             new ApiResponce(
                 200,
-                channel,
+                // because the aggregate pipeline returns a array of results from that we know we only have a one result. so, return the first result
+                channel[0],
                 "Channel fetched sucessfully!!!"
             )
         )
 
 })
 
+// gwttring watch history
+const getWatchHistory = asyncHandler(async (req, res) => {
+    // get the current user in whisch the watch history is their
+    const user = User.aggregate([
+        // stag 1 --> to get the current user
+        {
+            // first match the id of the current user to the user document
+            $match: {
+                // to get th euser id in aproper manner use the below syntax
+                _id: new mongoose.Types.ObjectId(req.user?._id)
+            }
+        },
+        // stag 2 --> get the watch history using a lookup
+        {
+            $lookup: {
+                from: "videos",
+                localField: "watchHistory",
+                foreignField: "_id",
+                as: "watchHistory",
+                // we will write more pipeline to find the owner detail of it
+                pipeline: [
+                    // stage 1 --> find out the owner using lookup
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "owner",
+                            // we will write a another pipeline to project only usefull info  into the video
+                            pipeline: [
+                                {
+                                    $project: {
+                                        username: 1,
+                                        fullName: 1,
+                                        avatar: 1,
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    // stage 2 --> only give the user not the array of the user
+                    {
+                        // overwrite the owner field with only one object
+                        $addFields: {
+                            owner: {
+                                $first: "$owner"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+    ])
+
+    // retuen the responce
+    res.status(200)
+    .json(
+        new ApiResponce(
+            200,
+            user[0].watchHistory,
+            "Watch history fetched successfully!!!"
+        )
+    )
+})
 export {
     registerUser,
     loginUser,
@@ -533,5 +599,6 @@ export {
     getCurrentUser,
     updateCoverImage,
     updateUserAvatar,
-    getUserChannelProfile
+    getUserChannelProfile,
+    getWatchHistory
 } 
