@@ -90,7 +90,7 @@ userModel.methods.generateRefreshToken = function () {
         process.env.REFRESH_TOKEN_SECRET,
         //Expiry time also get from the .env file
         {
-            expiresIn: REFRESH_TOKEN_EXPIRY
+            expiresIn: process.env.REFRESH_TOKEN_EXPIRY
         }
     )
 }
