@@ -114,7 +114,7 @@ const loginUser = asyncHandler(async (req, res) => {
     await generateAccessTokenAndRefreshToken(user._id);
 
   // send res to the user
-  const logedInUser = User.findById(user._id).select("-password -refreshToken");
+  const logedInUser = await User.findById(user._id).select("-password -refreshToken");
 
   const options = {
     httpOnly: true,
@@ -169,7 +169,7 @@ const logoutUser = asyncHandler(async (req, res) => {
 const refreshAcessToken = asyncHandler(async (req, res) => {
   // Get the refreshToken from cookie or body
   const incommingRefreshToken =
-    req.cookie.refreshToken || req.body.refreshToken;
+    req.cookies.refreshToken || req.body.refreshToken;
 
   //check if incomming refreshToken is not empty
   if (!incommingRefreshToken) {
@@ -304,7 +304,7 @@ const getCurrentUser = asyncHandler(async (req, res) => {
 // updating the avatar image
 const updateUserAvatar = asyncHandler(async (req, res) => {
   // get the local path of the avatar
-  const avatarLocalPath = req.file?.avatar;
+  const avatarLocalPath = req.file?.avatar.path;
   // get the old avatar url
   const oldAvatarUrl = req.user?.avatar;
 
@@ -351,7 +351,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
 // Updating the cover image
 const updateCoverImage = asyncHandler(async (req, res) => {
   // get the cover image local path from the req
-  const coverImageLocalPath = req.file?.coverImage;
+  const coverImageLocalPath = req.file?.coverImage.path;
   // get the old Cover image url
   const oldCoverImageUrl = req.user?.avatar;
 

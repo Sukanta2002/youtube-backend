@@ -43,9 +43,8 @@ const deleteOnCloudinary = async function (url) {
         const publicId = array[array.length - 1].split(".")[0]
 
         //delete the file using cloudinary api
-        const result = await cloudinary.uploader.destroy(publicId, {
-            resource_type: "auto"
-        })
+        const result = await cloudinary.uploader.destroy(publicId).then((result) => console.log(result))
+        .catch((err) => console.log(err));
 
     } catch (error) {
         console.log("Error on deleting on cloudinary!!");
