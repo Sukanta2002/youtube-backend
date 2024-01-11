@@ -1,4 +1,4 @@
-import mongoose, { isValidObjectId } from "mongoose";
+import mongoose, { Schema, isValidObjectId } from "mongoose";
 import { User } from "../models/user.model.js";
 import { Subscription } from "../models/subscription.model.js";
 import { ApiError } from "../utils/apiError.js";
@@ -35,7 +35,7 @@ const toggleSubscription = asyncHandler(async (req, res) => {
       channel: channel._id,
     });
 
-    res
+    return res
       .status(200)
       .json(
         new ApiResponce(200, newSubscriber, "Channel subscribed sucessfully")
@@ -45,7 +45,7 @@ const toggleSubscription = asyncHandler(async (req, res) => {
       _id: subscribe._id,
     });
 
-    res
+    return res
       .status(200)
       .json(
         new ApiResponce(200, deletedData, "Channel unsubscribed sucessfully")
@@ -72,7 +72,46 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Channel is not exist");
   }
 
-  const subscriberList = await Subscription.aggregate([{}]);
+  const subscriberList = await Subscription.aggregate([
+    {
+      $match: {
+        channel: channel._id,
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "subscriber",
+        foreignField: "_id",
+        as: "subscribers",
+        pipeline: [
+          {
+            $project: {
+              username: 1,
+              fullName: 1,
+              avatar: 1,
+              _id: 1,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $addFields: {
+        subscribers: "$subscribers",
+      },
+    },
+  ]);
+
+  if (subscriberList.length === 0) {
+    throw new ApiError(404,"Channel not found")
+  }
+
+  return res
+  .status(200)
+  .json(
+    new ApiResponce(200,subscriberList[0],"Subscribers fetched successfully")
+  )
 });
 
 // controller to return channel list to which user has subscribed
