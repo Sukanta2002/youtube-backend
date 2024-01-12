@@ -104,19 +104,73 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
   ]);
 
   if (subscriberList.length === 0) {
-    throw new ApiError(404,"Channel not found")
+    throw new ApiError(404, "Channel not found");
   }
 
   return res
-  .status(200)
-  .json(
-    new ApiResponce(200,subscriberList[0],"Subscribers fetched successfully")
-  )
+    .status(200)
+    .json(
+      new ApiResponce(
+        200,
+        subscriberList[0],
+        "Subscribers fetched successfully"
+      )
+    );
 });
 
 // controller to return channel list to which user has subscribed
 const getSubscribedChannels = asyncHandler(async (req, res) => {
   const { subscriberId } = req.params;
+
+  if (!subscriberId) {
+    throw new ApiError(402, "Subscriber id is not present");
+  }
+
+  const subscriber = await User.findById(subscriberId);
+
+  if (!subscriber) {
+    throw new ApiError(404, "User not found");
+  }
+
+  const channelList = await Subscription.aggregate([
+    {
+      $match: {
+        subscriber: subscriber._id,
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "channel",
+        foreignField: "_id",
+        as: "channels",
+        pipeline: [
+          {
+            $project: {
+              username: 1,
+              fullName: 1,
+              avatar: 1,
+              _id: 1,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $addFields: {
+        channels: "$channels",
+      },
+    },
+  ]);
+  if (channelList.length == 0) {
+    throw new ApiError(404, "Channel not found");
+  }
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponce(200, channelList, "Channel list fetched successfuly")
+    );
 });
 
 export { toggleSubscription, getUserChannelSubscribers, getSubscribedChannels };
