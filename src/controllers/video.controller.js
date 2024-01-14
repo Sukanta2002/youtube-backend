@@ -77,6 +77,51 @@ const getVideoById = asyncHandler(async (req, res) => {
 const updateVideo = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
   //TODO: update video details like title, description, thumbnail
+
+  const { title, description } = req.body;
+  const thumbnail = req.file?.path;
+
+  if (!title) {
+    throw new ApiError(402, "tilel can't be empty");
+  }
+
+  const video = await Video.findById(videoId);
+
+  if (!video) {
+    throw new ApiError(404, "Video not found");
+  }
+  const oldThumbnail = video.thumbnail;
+
+  let thumbnailLink;
+  if (thumbnail) {
+    thumbnailLink = await uploadOnCloudinary(thumbnail);
+
+    if (!thumbnailLink) {
+      throw new ApiError(401, "Error on uploading photo");
+    }
+
+    await deleteOnCloudinary(oldThumbnail);
+  }
+
+  const updatedVideo = await Video.findByIdAndUpdate(
+    video._id,
+    {
+      title,
+      thumbnail: thumbnailLink?.url || oldThumbnail,
+      description: description || "",
+    },
+    {
+      new: true,
+    }
+  );
+
+  if (!updatedVideo) {
+    throw new ApiError(404, "Video not found");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponce(200, updatedVideo, "Video updated sucessfully"));
 });
 
 const deleteVideo = asyncHandler(async (req, res) => {
@@ -88,7 +133,7 @@ const deleteVideo = asyncHandler(async (req, res) => {
   }
 
   const video = await Video.findById({
-    $ans: [{ _id: videoId }, { owner: req.user._id }],
+    $and: [{ _id: videoId }, { owner: req.user._id }],
   });
 
   if (!video) {
@@ -129,7 +174,9 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
     video.isPublished = true;
   }
 
-  const updatedVideo = await video.save();
+  const updatedVideo = await video.save({
+    validateBeforeSave: false,
+  });
 
   return res
     .status(200)
