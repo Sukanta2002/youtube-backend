@@ -7,7 +7,6 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 
 const toggleSubscription = asyncHandler(async (req, res) => {
   const { channelId } = req.params;
-  // TODO: toggle subscription
 
   // steps to do it
   // check if the channel it is exist

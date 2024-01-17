@@ -13,7 +13,6 @@ const getAllVideos = asyncHandler(async (req, res) => {
 
 const publishAVideo = asyncHandler(async (req, res) => {
   const { title, description } = req.body;
-  // TODO: get video, upload to cloudinary, create video
 
   if (!title) {
     throw new ApiError(402, "No Titel present");
@@ -57,7 +56,6 @@ const publishAVideo = asyncHandler(async (req, res) => {
 
 const getVideoById = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
-  //TODO: get video by id
 
   if (!videoId) {
     throw new ApiError(402, "Video id is missing");
@@ -76,7 +74,6 @@ const getVideoById = asyncHandler(async (req, res) => {
 
 const updateVideo = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
-  //TODO: update video details like title, description, thumbnail
 
   const { title, description } = req.body;
   const thumbnail = req.file?.path;
@@ -126,7 +123,7 @@ const updateVideo = asyncHandler(async (req, res) => {
 
 const deleteVideo = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
-  //TODO: delete video
+  //TODO: delete video testing 
 
   if (!videoId) {
     throw new ApiError(402, "Video id is missing");
