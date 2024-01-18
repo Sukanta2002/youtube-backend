@@ -12,7 +12,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
 });
 
 const addComment = asyncHandler(async (req, res) => {
-  // TODO: add a comment to a video testing is required
+  // TODO: testing required
 
   const { content, videoId } = req.body;
 
@@ -32,17 +32,50 @@ const addComment = asyncHandler(async (req, res) => {
     owner: req.user._id,
   });
 
-  res
+  return res
     .status(200)
     .json(new ApiResponce(200, comment, "Comment added sucesfully"));
 });
 
 const updateComment = asyncHandler(async (req, res) => {
-  // TODO: update a comment
+  // TODO: testing required
+
+  const { commentId, content } = req.body;
+
+  if (!content) {
+    throw new ApiError(402, "Content is missing");
+  }
+
+  const comment = await Comment.findByIdAndUpdate(
+    commentId,
+    {
+      content,
+    },
+    {
+      new: true,
+    }
+  );
+
+  return res
+    .status(200)
+    .json(new ApiResponce(200, comment, "Comment updated sucessfully"));
 });
 
 const deleteComment = asyncHandler(async (req, res) => {
-  // TODO: delete a comment
+  // TODO: testing required
+  const commentId = req.body.commentId;
+
+  if (!commentId) {
+    throw new ApiError(402, "Error is missing");
+  }
+
+  const deletedData = await Comment.findByIdAndDelete(commentId, { new: true });
+
+  return res
+  .status(200)
+  .json(
+    new ApiResponce(200,deletedData,"Comment deleted sucessfully")
+  )
 });
 
 export { getVideoComments, addComment, updateComment, deleteComment };
