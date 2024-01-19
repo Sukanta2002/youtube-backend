@@ -17,7 +17,7 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Video not exist");
   }
 
-  const like = await Like.find({
+  const like = await Like.findOne({
     $and: [{ likedBy: req.user._id }, { video: video._id }],
   });
 
@@ -28,7 +28,7 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
       .status(200)
       .json(new ApiResponce(200, deletedData, "Video unliked sucessfullu"));
   } else {
-    const newLike = Like.create({
+    const newLike = await Like.create({
       likedBy: req.user._id,
       video: video._id,
     });
@@ -49,7 +49,7 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Video not exist");
   }
 
-  const like = await Like.find({
+  const like = await Like.findOne({
     $and: [{ likedBy: req.user._id }, { comment: comment._id }],
   });
 
@@ -60,7 +60,7 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
       .status(200)
       .json(new ApiResponce(200, deletedData, "Comment unliked sucessfullu"));
   } else {
-    const newLike = Like.create({
+    const newLike = await Like.create({
       likedBy: req.user._id,
       video: comment._id,
     });
@@ -81,7 +81,7 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Tweet not exist");
   }
 
-  const like = await Like.find({
+  const like = await Like.findOne({
     $and: [{ likedBy: req.user._id }, { tweet: tweet._id }],
   });
 
@@ -92,7 +92,7 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
       .status(200)
       .json(new ApiResponce(200, deletedData, "Tweet unliked sucessfullu"));
   } else {
-    const newLike = Like.create({
+    const newLike = await Like.create({
       likedBy: req.user._id,
       video: tweet._id,
     });
@@ -104,7 +104,41 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
 });
 
 const getLikedVideos = asyncHandler(async (req, res) => {
-  //TODO: get all liked videos
+
+  const allLikedVideos = await Like.aggregate([
+    {
+      $match: {
+        likedBy: req.user._id,
+      },
+    },
+    {
+      $lookup: {
+        from: "videos",
+        localField: "video",
+        foreignField: "_id",
+        as: "videos",
+        
+      },
+    },
+    {
+      $addFields: {
+        videos: "$videos",
+      },
+    },
+    {
+      $project: {
+        likedBy: 1,
+        videos: 1,
+      },
+    },
+  ]);
+
+
+  return res
+  .status(200)
+  .json(
+    new ApiResponce(200,allLikedVideos[0],"fetched all liked videos by user")
+  )
 });
 
 export { toggleCommentLike, toggleTweetLike, toggleVideoLike, getLikedVideos };
